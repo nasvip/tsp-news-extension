@@ -39,12 +39,13 @@ def setup(registrar):
         topic: str = Query("", description="主题名，如 人工智能"),
         sentiment: str = Query("", description="bullish / bearish / neutral"),
         limit: int = Query(50, ge=1, le=100),
+        page: int = Query(1, ge=1, le=200, description="页码，用于「加载更早」"),
     ):
         """三源合并后的快讯流。"""
         if sentiment not in _VALID_SENTIMENTS:
             raise HTTPException(status_code=400, detail=f"未知情绪: {sentiment}")
         try:
-            return news_core.merged_feed(limit, topic=topic, sentiment=sentiment)
+            return news_core.merged_feed(limit, page=page, topic=topic, sentiment=sentiment)
         except news_core.UpstreamError as exc:
             raise HTTPException(status_code=502, detail=f"上游不可用: {exc}") from exc
 
@@ -52,6 +53,18 @@ def setup(registrar):
     def list_topics():
         """主题词表（供前端筛选项使用）。"""
         return {"topics": list(tagger_dict.TOPICS.keys())}
+
+    @router.get("/stock-batch")
+    def get_stock_news_batch(
+        symbols: str = Query(..., description="逗号分隔，如 600519.SH,000001.SZ"),
+        per: int = Query(10, ge=1, le=30, description="每只股票取多少条"),
+    ):
+        """多只股票的新闻合并（自选/持仓聚合用）。"""
+        codes = [part.strip() for part in symbols.split(",") if part.strip()]
+        try:
+            return news_core.stock_news_batch(codes, per)
+        except news_core.UpstreamError as exc:
+            raise HTTPException(status_code=502, detail=f"上游不可用: {exc}") from exc
 
     @router.get("/stock")
     def get_stock_news(

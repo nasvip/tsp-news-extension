@@ -128,11 +128,11 @@ def _item(time_text: str, title: str, summary: str, url: str, source: str, sourc
 # ---------------------------------------------------------------- 快讯源
 
 
-def fetch_ths(limit: int) -> list[dict]:
+def fetch_ths(limit: int, page: int = 1) -> list[dict]:
     """同花顺 7x24 快讯。"""
     url = (
         "https://news.10jqka.com.cn/tapp/news/push/stock/"
-        f"?page=1&tag=&track=website&pagesize={limit}"
+        f"?page={page}&tag=&track=website&pagesize={limit}"
     )
     raw = _get(url, "https://news.10jqka.com.cn/")
     try:
@@ -155,11 +155,11 @@ def fetch_ths(limit: int) -> list[dict]:
     return out
 
 
-def fetch_sina(limit: int) -> list[dict]:
+def fetch_sina(limit: int, page: int = 1) -> list[dict]:
     """新浪财经滚动新闻。"""
     url = (
         "https://feed.mix.sina.com.cn/api/roll/get"
-        f"?pageid=153&lid=2516&num={limit}&page=1"
+        f"?pageid=153&lid=2516&num={limit}&page={page}"
     )
     raw = _get(url, "https://finance.sina.com.cn/")
     try:
@@ -182,9 +182,9 @@ def fetch_sina(limit: int) -> list[dict]:
     return out
 
 
-def fetch_eastmoney(limit: int) -> list[dict]:
-    """东方财富 7x24 快讯（返回是 JS 包裹的 JSON）。"""
-    url = f"https://newsapi.eastmoney.com/kuaixun/v1/getlist_102_ajaxResult_{limit}_1_.html"
+def fetch_eastmoney(limit: int, page: int = 1) -> list[dict]:
+    """东方财富 7x24 快讯（返回是 JS 包裹的 JSON，文件名末尾两段是每页条数与页码）。"""
+    url = f"https://newsapi.eastmoney.com/kuaixun/v1/getlist_102_ajaxResult_{limit}_{page}_.html"
     raw = _get(url, "https://kuaixun.eastmoney.com/")
     body = raw.strip()
     if body.startswith("var ajaxResult"):
@@ -265,11 +265,16 @@ def _topic_counts(items: list[dict]) -> list[dict]:
     ]
 
 
-def merged_feed(limit_per_source: int = 50, topic: str = "", sentiment: str = "") -> dict:
-    """三源合并成一条流，打标后按筛选条件返回。"""
+def merged_feed(limit_per_source: int = 50, page: int = 1, topic: str = "",
+                sentiment: str = "") -> dict:
+    """三源合并成一条流，打标后按筛选条件返回。
+
+    page 用于「加载更早」：同一页号下三个源各自翻到对应深度再合并。
+    """
     limit_per_source = max(1, min(int(limit_per_source), 100))
-    cache_key = ("merged", limit_per_source)
-    rows = _cached(cache_key, lambda: _merge(_fetch_all(limit_per_source)))
+    page = max(1, min(int(page), 200))
+    cache_key = ("merged", limit_per_source, page)
+    rows = _cached(cache_key, lambda: _merge(_fetch_all(limit_per_source, page)))
 
     counts = {"bullish": 0, "bearish": 0, "neutral": 0}
     for row in rows:
@@ -284,6 +289,7 @@ def merged_feed(limit_per_source: int = 50, topic: str = "", sentiment: str = ""
     return {
         "count": len(filtered),
         "total": len(rows),
+        "page": page,
         "stats": counts,
         "topics": _topic_counts(rows),
         "sources": sources(),
@@ -291,12 +297,12 @@ def merged_feed(limit_per_source: int = 50, topic: str = "", sentiment: str = ""
     }
 
 
-def _fetch_all(limit_per_source: int) -> list[dict]:
+def _fetch_all(limit_per_source: int, page: int = 1) -> list[dict]:
     """并发抓三个源；单个源失败不影响其他源。"""
 
     def one(key: str) -> list[dict]:
         try:
-            return FEEDS[key][1](limit_per_source)
+            return FEEDS[key][1](limit_per_source, page)
         except UpstreamError:
             return []
 
@@ -364,3 +370,40 @@ def stock_news(symbol: str, limit: int) -> dict:
     limit = max(1, min(int(limit), 50))
     items = _cached(("stock", code, limit), lambda: fetch_stock_news(code, limit))
     return {"symbol": code, "count": len(items), "items": items}
+
+
+# 一次聚合请求最多处理多少只标的：自选很多时避免一进页面就打几十个请求
+MAX_BATCH_SYMBOLS = 30
+
+
+def stock_news_batch(symbols: list[str], per: int = 10) -> dict:
+    """多只股票的新闻合并：并发查询 → 按标题指纹去重 → 按时间倒序。"""
+    per = max(1, min(int(per), 30))
+    codes: list[str] = []
+    for raw in symbols or []:
+        code = normalize_symbol(raw)
+        if code and code not in codes:
+            codes.append(code)
+    truncated = len(codes) > MAX_BATCH_SYMBOLS
+    codes = codes[:MAX_BATCH_SYMBOLS]
+    if not codes:
+        return {"count": 0, "symbols": [], "truncated": False, "items": []}
+
+    def one(code: str) -> list[dict]:
+        try:
+            return fetch_stock_news(code, per)
+        except (UpstreamError, ValueError):
+            return []
+
+    rows: list[dict] = []
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        for chunk in pool.map(one, codes):
+            rows.extend(chunk)
+
+    merged = _merge(rows)
+    return {
+        "count": len(merged),
+        "symbols": codes,
+        "truncated": truncated,
+        "items": merged,
+    }

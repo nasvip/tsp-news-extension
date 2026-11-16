@@ -156,9 +156,9 @@ def test_merged_feed_filters():
     original = core.FEEDS
     core._cache.clear()
     core.FEEDS = {
-        "ths": ("同花顺", lambda n: [_row("某公司中标重大项目 金额超预期", "2026-11-16 10:00:00", "ths")]),
-        "sina": ("新浪", lambda n: [_row("某公司被立案调查 股价跌停", "2026-11-16 11:00:00", "sina")]),
-        "em": ("东财", lambda n: []),
+        "ths": ("同花顺", lambda n, page=1: [_row("某公司中标重大项目 金额超预期", "2026-11-16 10:00:00", "ths")]),
+        "sina": ("新浪", lambda n, page=1: [_row("某公司被立案调查 股价跌停", "2026-11-16 11:00:00", "sina")]),
+        "em": ("东财", lambda n, page=1: []),
     }
     try:
         data = core.merged_feed(10)
@@ -234,4 +234,61 @@ def test_tagger_excludes_pullback_phrases():
 def test_tagger_summary_style_has_no_topics():
     result = tagger.tag("港股午评：恒生指数涨0.84% 光通信板块跌幅居前", "半导体走弱")
     assert result["topics"] == []
+
+
+def test_feed_page_param_reaches_upstream():
+    """「加载更早」的分页参数必须真的带到上游 URL 上。"""
+    captured = {}
+
+    def fake(url, referer):
+        captured["url"] = url
+        return json.dumps({"data": {"list": []}}, ensure_ascii=False)
+
+    original = core._get
+    core._get = fake
+    try:
+        core.fetch_ths(20, 3)
+        assert "page=3" in captured["url"]
+        core.fetch_sina(20, 5)
+        assert "page=5" in captured["url"]
+        core.fetch_eastmoney(50, 2)
+        assert "_50_2_" in captured["url"]
+    finally:
+        core._get = original
+
+
+def test_stock_news_batch_dedupes():
+    original = core.fetch_stock_news
+    core._cache.clear()
+
+    def fake(symbol, limit):
+        return [
+            core._item("2026-11-16 10:00:00", "同一条新闻", "", "", symbol, "em"),
+            core._item("2026-11-16 09:00:00", f"{symbol} 专属", "", "", symbol, "em"),
+        ]
+
+    core.fetch_stock_news = fake
+    try:
+        data = core.stock_news_batch(["600519.SH", "600519.SH", "000001.SZ"], per=5)
+        assert data["symbols"] == ["600519.SH", "000001.SZ"]
+        titles = [i["title"] for i in data["items"]]
+        assert titles.count("同一条新闻") == 1
+        assert len(titles) == 3
+    finally:
+        core.fetch_stock_news = original
+        core._cache.clear()
+
+
+def test_stock_news_batch_caps_symbols():
+    original = core.fetch_stock_news
+    core._cache.clear()
+    core.fetch_stock_news = lambda symbol, limit: []
+    try:
+        codes = [f"{600000 + i}.SH" for i in range(40)]
+        data = core.stock_news_batch(codes, per=5)
+        assert data["truncated"] is True
+        assert len(data["symbols"]) == core.MAX_BATCH_SYMBOLS
+    finally:
+        core.fetch_stock_news = original
+        core._cache.clear()
 

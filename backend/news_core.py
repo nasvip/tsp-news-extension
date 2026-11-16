@@ -244,10 +244,20 @@ def _merge(rows: list[dict]) -> list[dict]:
     return sorted(best.values(), key=lambda r: r["time"], reverse=True)
 
 
+def _topic_names(item: dict) -> list[str]:
+    """主题统一取名称（后端返回的是 [{name, group}]）。"""
+    out = []
+    for topic in item.get("topics") or []:
+        name = topic.get("name") if isinstance(topic, dict) else topic
+        if name:
+            out.append(name)
+    return out
+
+
 def _topic_counts(items: list[dict]) -> list[dict]:
     counts: dict[str, int] = {}
     for item in items:
-        for name in item.get("topics") or []:
+        for name in _topic_names(item):
             counts[name] = counts.get(name, 0) + 1
     return [
         {"name": name, "count": count}
@@ -267,7 +277,7 @@ def merged_feed(limit_per_source: int = 50, topic: str = "", sentiment: str = ""
 
     filtered = rows
     if topic:
-        filtered = [r for r in filtered if topic in (r.get("topics") or [])]
+        filtered = [r for r in filtered if topic in _topic_names(r)]
     if sentiment:
         filtered = [r for r in filtered if r.get("sentiment") == sentiment]
 

@@ -200,13 +200,15 @@ def test_tagger_neutral_when_weak_signal():
 
 def test_tagger_topics():
     result = tagger.tag("人工智能大模型算力需求爆发", "")
-    assert "人工智能" in result["topics"]
+    names = [t["name"] for t in result["topics"]]
+    assert "人工智能" in names
+    assert result["topics"][0]["group"] == "tech"
     assert len(result["topics"]) <= tagger_dict.MAX_TOPICS
 
 
 def test_tagger_topic_order_by_hits():
     result = tagger.tag("半导体芯片光刻机晶圆产能", "")
-    assert result["topics"][0] == "半导体/芯片"
+    assert result["topics"][0]["name"] == "半导体/芯片"
 
 def test_tagger_summary_style_forced_neutral():
     """午评/收盘这类综述不判方向，即使正文里有涨跌词。"""
@@ -217,7 +219,7 @@ def test_tagger_summary_style_forced_neutral():
 def test_tagger_topics_prefer_title_over_summary():
     """标题讲汽车、摘要提宏观数据时，不该再打上宏观数据。"""
     result = tagger.tag("崔东树：10月汽车增加值0.9%", "国家统计局公布的社融数据超预期")
-    assert result["topics"] == ["汽车"]
+    assert [t["name"] for t in result["topics"]] == ["汽车"]
 
 def test_tagger_bearish_down_move():
     assert tagger.tag("台湾证交所加权股价指数下跌5%", "")["sentiment"] == "bearish"
@@ -232,3 +234,4 @@ def test_tagger_excludes_pullback_phrases():
 def test_tagger_summary_style_has_no_topics():
     result = tagger.tag("港股午评：恒生指数涨0.84% 光通信板块跌幅居前", "半导体走弱")
     assert result["topics"] == []
+

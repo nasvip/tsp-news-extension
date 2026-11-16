@@ -32,7 +32,7 @@ def main():
 
     print("\n最新 10 条：")
     for item in data["items"][:10]:
-        topics = "/".join(item["topics"]) or "-"
+        topics = "/".join(t["name"] for t in item["topics"]) or "-"
         print(f"  [{item['sentiment_label']}] {item['time']}  {item['title'][:36]}")
         print(f"        {item['source'][:14]}  ·  {topics}")
 

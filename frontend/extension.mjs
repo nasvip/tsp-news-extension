@@ -274,15 +274,9 @@ function buildCard(item) {
       })
     : null
 
-  const src = SOURCE_STYLE[item.source_key] || SOURCE_FALLBACK
   const foot = [
-    h('span', {
-      text: item.source || '',
-      style: {
-        color: src.text, background: src.bg, border: '1px solid ' + src.bd,
-        borderRadius: '4px', padding: '0 6px', fontWeight: '600',
-      },
-    }),
+    // 来源与时间同色：按你的要求，标签不做花哨配色
+    h('span', { text: item.source || '', style: { color: H.body, fontWeight: '600' } }),
     timeNode,
     ...(item.topics || []).map(topicChip),
     item.sectorNames?.length ? sectorChip(item.sectorNames) : null,
@@ -473,8 +467,11 @@ function mount(el, ctx) {
         state.tab = 'feed'; paintTabs(); paintPanels(); loadFeed()
       }),
       chip('个股新闻', state.tab === 'stock', () => {
-        state.tab = 'stock'; paintTabs(); paintPanels()
-        if (!state.stockItems.length && state.mine.ready) loadStockView(state.stockView)
+        state.tab = 'stock'
+        paintTabs()
+        paintPanels()
+        // 不依赖 mine 是否就绪：直接尝试加载，空列表会在 loadStockView 里给提示
+        if (!state.stockItems.length && !state.stockLoading) loadStockView(state.stockView || 'all')
       }),
     )
   }
@@ -585,10 +582,29 @@ function mount(el, ctx) {
       return
     }
     if (!state.stockItems.length) {
+      let hint = '没有相关新闻'
+      if (!state.mine.ready) {
+        hint = '正在读取自选与持仓…'
+      } else if (state.stockView !== 'search') {
+        const n = symbolsForView(state.stockView).length
+        if (!n) {
+          hint = state.stockView === 'hold'
+            ? '模拟盘当前没有持仓'
+            : (state.stockView === 'watch' ? '还没有自选股' : '先在面板里添加自选股，或直接搜索代码')
+        }
+      }
+      const retry = h('button', {
+        text: '重新加载',
+        onclick: () => loadStockView(state.stockView || 'all'),
+        style: {
+          marginLeft: '10px', height: '26px', padding: '0 12px', borderRadius: '6px',
+          border: '1px solid ' + H.line, background: 'transparent', color: H.accent,
+          fontSize: '12px', cursor: 'pointer',
+        },
+      })
       stockList.append(h('div', {
-        text: state.mine.list.length ? '没有相关新闻' : '先在面板里添加自选股，或直接搜索代码',
-        style: { color: H.body, fontSize: '13px', padding: '16px 4px' },
-      }))
+        style: { display: 'flex', alignItems: 'center', color: H.body, fontSize: '13px', padding: '16px 4px' },
+      }, hint, state.mine.ready ? retry : null))
       return
     }
     if (state.stockView === 'search' && ctx.ui?.openStockPreview) {
@@ -696,8 +712,11 @@ function mount(el, ctx) {
     paintStockChips()
     annotateAll()
     paintFeed()
-    if (state.tab === 'stock' && !state.stockItems.length && state.mine.list.length) {
-      loadStockView('all')
+    // 读完自选/持仓就主动把个股页的数据拉好，避免切过去还要等
+    if (state.mine.list.length && !state.stockItems.length && !state.stockLoading) {
+      loadStockView(state.stockView || 'all')
+    } else {
+      paintStock()
     }
   }
 
@@ -811,7 +830,9 @@ function mount(el, ctx) {
     const symbols = symbolsForView(view)
     if (!symbols.length) {
       state.stockItems = []
-      state.stockNote.textContent = view === 'hold' ? '模拟盘当前没有持仓' : '还没有自选股'
+      state.stockNote.textContent = !state.mine.ready
+        ? ''
+        : (view === 'hold' ? '模拟盘当前没有持仓' : view === 'watch' ? '还没有自选股' : '')
       paintStock()
       return
     }

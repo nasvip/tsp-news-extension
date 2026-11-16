@@ -1,5 +1,5 @@
 /**
- * 财经资讯页面插件（Page Pack SDK v1）
+ * 财经快讯页面插件（Page Pack SDK v1）
  *
  * 自包含单文件 ES 模块，零构建：原生 DOM。
  * 配色全部走面板主题变量（亮/暗自动切换），自定义色以 scoped CSS 变量注入。
@@ -18,14 +18,12 @@ const THEME_CSS = `
 .tsp-news{
   --n-tech: 217 91% 45%; --n-consume: 24 85% 42%; --n-cycle: 40 85% 33%;
   --n-finance: 265 70% 48%; --n-other: 178 72% 30%;
-  --n-em: 24 80% 45%; --n-ths: 212 85% 45%; --n-sina: 265 70% 55%;
-  --n-src: 200 40% 42%; --n-mine: 330 80% 45%; --n-fresh: 32 95% 40%;
+  --n-mine: 330 80% 45%; --n-fresh: 32 95% 40%;
 }
 html.dark .tsp-news{
   --n-tech: 213 94% 72%; --n-consume: 25 95% 72%; --n-cycle: 45 90% 62%;
   --n-finance: 265 90% 78%; --n-other: 175 65% 58%;
-  --n-em: 24 90% 68%; --n-ths: 210 95% 70%; --n-sina: 265 90% 78%;
-  --n-src: 200 45% 70%; --n-mine: 330 90% 72%; --n-fresh: 40 95% 62%;
+  --n-mine: 330 90% 72%; --n-fresh: 40 95% 62%;
 }
 `
 
@@ -41,7 +39,6 @@ function ensureThemeCss() {
 const H = {
   text: 'hsl(var(--fg-primary))',
   body: 'hsl(var(--fg-secondary))',
-  muted: 'hsl(var(--fg-muted))',
   line: 'hsl(var(--border))',
   card: 'hsl(var(--surface))',
   accent: 'hsl(var(--accent))',
@@ -51,7 +48,7 @@ const H = {
   danger: 'hsl(var(--danger))',
 }
 
-// 自定义变量（本包注入）
+// 本包注入的变量
 const N = {
   tech: 'hsl(var(--n-tech))',
   consume: 'hsl(var(--n-consume))',
@@ -62,7 +59,7 @@ const N = {
   fresh: 'hsl(var(--n-fresh))',
 }
 
-const ALPHA = {
+const A = {
   bull: 'hsl(var(--bull) / 0.12)',
   bullBd: 'hsl(var(--bull) / 0.30)',
   bear: 'hsl(var(--bear) / 0.12)',
@@ -86,25 +83,18 @@ const ALPHA = {
 }
 
 const TONE = {
-  bullish: { color: H.bull, text: H.bull, bg: ALPHA.bull, bd: ALPHA.bullBd, label: '利好' },
-  bearish: { color: H.bear, text: H.bear, bg: ALPHA.bear, bd: ALPHA.bearBd, label: '利空' },
-  neutral: { color: H.warn, text: H.warn, bg: ALPHA.warn, bd: ALPHA.warnBd, label: '中性' },
+  bullish: { color: H.bull, text: H.bull, bg: A.bull, bd: A.bullBd, label: '利好' },
+  bearish: { color: H.bear, text: H.bear, bg: A.bear, bd: A.bearBd, label: '利空' },
+  neutral: { color: H.warn, text: H.warn, bg: A.warn, bd: A.warnBd, label: '中性' },
 }
 
 const GROUP = {
-  tech: { text: N.tech, bg: ALPHA.tech, bd: ALPHA.techBd },
-  consume: { text: N.consume, bg: ALPHA.consume, bd: ALPHA.consumeBd },
-  cycle: { text: N.cycle, bg: ALPHA.cycle, bd: ALPHA.cycleBd },
-  finance: { text: N.finance, bg: ALPHA.finance, bd: ALPHA.financeBd },
-  other: { text: N.other, bg: ALPHA.other, bd: ALPHA.otherBd },
+  tech: { text: N.tech, bg: A.tech, bd: A.techBd },
+  consume: { text: N.consume, bg: A.consume, bd: A.consumeBd },
+  cycle: { text: N.cycle, bg: A.cycle, bd: A.cycleBd },
+  finance: { text: N.finance, bg: A.finance, bd: A.financeBd },
+  other: { text: N.other, bg: A.other, bd: A.otherBd },
 }
-
-const SOURCE_STYLE = {
-  em: { text: 'hsl(var(--n-em))', bg: 'hsl(var(--n-em) / 0.10)', bd: 'hsl(var(--n-em) / 0.26)' },
-  ths: { text: 'hsl(var(--n-ths))', bg: 'hsl(var(--n-ths) / 0.10)', bd: 'hsl(var(--n-ths) / 0.26)' },
-  sina: { text: 'hsl(var(--n-sina))', bg: 'hsl(var(--n-sina) / 0.10)', bd: 'hsl(var(--n-sina) / 0.26)' },
-}
-const SOURCE_FALLBACK = { text: 'hsl(var(--n-src))', bg: 'hsl(var(--n-src) / 0.10)', bd: 'hsl(var(--n-src) / 0.26)' }
 
 // ---------------------------------------------------------------- 基础工具
 
@@ -167,7 +157,7 @@ function openUrl(url) {
   if (url) window.open(url, '_blank', 'noopener,noreferrer')
 }
 
-// ---------------------------------------------------------------- 卡片组件
+// ---------------------------------------------------------------- 卡片
 
 function sentimentPill(item) {
   const tone = TONE[item.sentiment] || TONE.neutral
@@ -190,8 +180,8 @@ function kindBadge(item) {
     style: {
       fontSize: '10.5px', fontWeight: '600', padding: '1px 6px', borderRadius: '4px',
       color: hasUrl ? H.accent : H.warn,
-      background: hasUrl ? ALPHA.accent : ALPHA.warn,
-      border: '1px solid ' + (hasUrl ? ALPHA.accentBd : ALPHA.warnBd),
+      background: hasUrl ? A.accent : A.warn,
+      border: '1px solid ' + (hasUrl ? A.accentBd : A.warnBd),
       whiteSpace: 'nowrap', flex: '0 0 auto',
     },
   })
@@ -215,7 +205,7 @@ function sectorChip(names) {
     title: names.join(' / '),
     style: {
       fontSize: '10.5px', fontWeight: '600', padding: '1px 7px', borderRadius: '4px',
-      color: N.other, background: ALPHA.other, border: '1px dashed ' + ALPHA.otherBd,
+      color: N.other, background: A.other, border: '1px dashed ' + A.otherBd,
       whiteSpace: 'nowrap',
     },
   })
@@ -226,7 +216,7 @@ function mineBadge(kinds) {
     text: kinds.has('hold') ? '持仓' : '自选',
     style: {
       fontSize: '10.5px', fontWeight: '600', padding: '1px 7px', borderRadius: '4px',
-      color: N.mine, background: ALPHA.mine, border: '1px solid ' + ALPHA.mineBd,
+      color: N.mine, background: A.mine, border: '1px solid ' + A.mineBd,
       whiteSpace: 'nowrap',
     },
   })
@@ -275,7 +265,6 @@ function buildCard(item) {
     : null
 
   const foot = [
-    // 来源与时间同色：按你的要求，标签不做花哨配色
     h('span', { text: item.source || '', style: { color: H.body, fontWeight: '600' } }),
     timeNode,
     ...(item.topics || []).map(topicChip),
@@ -310,7 +299,6 @@ function mount(el, ctx) {
   ensureThemeCss()
 
   const state = {
-    tab: 'feed',
     keyword: '',
     topic: '',
     sentiment: '',
@@ -325,14 +313,8 @@ function mount(el, ctx) {
     page: 1,
     exhausted: false,
     mine: { ready: false, list: [], sectors: [] },
-    stockView: 'all',        // all | hold | watch | search
-    stockItems: [],
-    stockLoading: false,
-    stockError: '',
-    stockNote: '',
-    searchText: '',
   }
-  const store = new Map()      // 快讯：指纹 -> item，翻页/刷新统一去重
+  const store = new Map()      // 指纹 -> item
   let alive = true
   let timer = null
   let clock = null
@@ -344,14 +326,11 @@ function mount(el, ctx) {
   root.classList.add('tsp-news')
   el.append(root)
 
-  // ---- 头部 ----
-  const tabs = h('div', { style: { display: 'flex', gap: '8px' } })
   const statusText = h('div', { style: { color: H.body, fontSize: '12px', marginLeft: 'auto' } })
   const header = h('div', {
     style: { display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '14px' },
-  }, h('div', { text: '财经资讯', style: { fontSize: '18px', fontWeight: '700', color: H.text } }), tabs, statusText)
+  }, h('div', { text: '财经快讯', style: { fontSize: '18px', fontWeight: '700', color: H.text } }), statusText)
 
-  // ---- 快讯工具条 ----
   const searchInput = h('input', {
     type: 'search', placeholder: '搜索标题或摘要',
     oninput: (e) => { state.keyword = e.target.value.trim(); paintFeed() },
@@ -369,8 +348,8 @@ function mount(el, ctx) {
     Object.assign(mineToggle.style, {
       height: '32px', padding: '0 12px', borderRadius: '8px', cursor: 'pointer',
       fontSize: '12.5px',
-      border: '1px solid ' + (state.onlyMine ? ALPHA.mineBd : H.line),
-      background: state.onlyMine ? ALPHA.mine : 'transparent',
+      border: '1px solid ' + (state.onlyMine ? A.mineBd : H.line),
+      background: state.onlyMine ? A.mine : 'transparent',
       color: state.onlyMine ? N.mine : H.text,
     })
   }
@@ -408,42 +387,14 @@ function mount(el, ctx) {
     text: '加载更早',
     onclick: () => loadMore(),
     style: {
-      alignSelf: 'center', marginTop: '6px', height: '30px', padding: '0 18px',
-      borderRadius: '8px', border: '1px solid ' + H.line, background: 'transparent',
+      marginTop: '6px', height: '30px', padding: '0 18px', borderRadius: '8px',
+      border: '1px solid ' + H.line, background: 'transparent',
       color: H.body, fontSize: '12.5px', cursor: 'pointer',
     },
   })
   const moreWrap = h('div', { style: { display: 'flex', justifyContent: 'center' } }, moreBtn)
-  const feedPanel = h('div', {}, toolRow, sentimentRow, topicRow, feedList, moreWrap)
 
-  // ---- 个股工具条 ----
-  const stockChips = h('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap' } })
-  const stockSearch = h('input', {
-    type: 'text', placeholder: '输入代码或名称，如 600519 / 茅台',
-    onkeydown: (e) => { if (e.key === 'Enter') runStockSearch() },
-    oninput: (e) => { state.searchText = e.target.value.trim() },
-    style: {
-      flex: '1 1 200px', minWidth: '160px', height: '32px', padding: '0 10px',
-      borderRadius: '8px', border: '1px solid ' + H.line, background: 'transparent',
-      color: H.text, fontSize: '13px', outline: 'none',
-    },
-  })
-  const stockSearchBtn = h('button', {
-    text: '搜索',
-    onclick: () => runStockSearch(),
-    style: {
-      height: '32px', padding: '0 14px', borderRadius: '8px', border: '1px solid ' + ALPHA.accentBd,
-      background: ALPHA.accent, color: H.accent, fontSize: '13px', cursor: 'pointer',
-    },
-  })
-  const stockBar = h('div', {
-    style: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' },
-  }, stockChips, stockSearch, stockSearchBtn)
-  const stockNote = h('div', { style: { color: H.body, fontSize: '11.5px', marginTop: '8px' } })
-  const stockList = h('div', { style: { marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '9px' } })
-  const stockPanel = h('div', { style: { display: 'none' } }, stockBar, stockNote, stockList)
-
-  root.append(header, feedPanel, stockPanel)
+  root.append(header, toolRow, sentimentRow, topicRow, feedList, moreWrap)
 
   // ---------------------------------------------------------------- 绘制
 
@@ -458,27 +409,6 @@ function mount(el, ctx) {
         color: active ? (activeColor || H.accent) : H.text,
       },
     })
-  }
-
-  function paintTabs() {
-    tabs.textContent = ''
-    tabs.append(
-      chip('7x24 快讯', state.tab === 'feed', () => {
-        state.tab = 'feed'; paintTabs(); paintPanels(); loadFeed()
-      }),
-      chip('个股新闻', state.tab === 'stock', () => {
-        state.tab = 'stock'
-        paintTabs()
-        paintPanels()
-        // 不依赖 mine 是否就绪：直接尝试加载，空列表会在 loadStockView 里给提示
-        if (!state.stockItems.length && !state.stockLoading) loadStockView(state.stockView || 'all')
-      }),
-    )
-  }
-
-  function paintPanels() {
-    feedPanel.style.display = state.tab === 'feed' ? '' : 'none'
-    stockPanel.style.display = state.tab === 'stock' ? '' : 'none'
   }
 
   function paintSentimentRow() {
@@ -507,20 +437,6 @@ function mount(el, ctx) {
       topicRow.append(chip(`${entry.name} ${entry.count}`, state.topic === entry.name, () => {
         state.topic = entry.name; paintTopicRow(); loadFeed(true)
       }))
-    }
-  }
-
-  function paintStockChips() {
-    stockChips.textContent = ''
-    const list = state.mine.list
-    const count = (kind) => list.filter((e) => e.kinds.has(kind)).length
-    const options = [
-      ['all', `全部 ${list.length}`],
-      ['hold', `持仓 ${count('hold')}`],
-      ['watch', `自选 ${count('watch')}`],
-    ]
-    for (const [key, label] of options) {
-      stockChips.append(chip(label, state.stockView === key, () => loadStockView(key)))
     }
   }
 
@@ -571,59 +487,6 @@ function mount(el, ctx) {
     moreBtn.style.opacity = state.moreLoading ? '0.6' : '1'
   }
 
-  function paintStock() {
-    stockList.textContent = ''
-    if (state.stockError) {
-      stockList.append(h('div', { text: state.stockError, style: { color: H.danger, fontSize: '13px', padding: '16px 4px' } }))
-      return
-    }
-    if (state.stockLoading) {
-      stockList.append(h('div', { text: '加载中…', style: { color: H.body, fontSize: '13px', padding: '16px 4px' } }))
-      return
-    }
-    if (!state.stockItems.length) {
-      let hint = '没有相关新闻'
-      if (!state.mine.ready) {
-        hint = '正在读取自选与持仓…'
-      } else if (state.stockView !== 'search') {
-        const n = symbolsForView(state.stockView).length
-        if (!n) {
-          hint = state.stockView === 'hold'
-            ? '模拟盘当前没有持仓'
-            : (state.stockView === 'watch' ? '还没有自选股' : '先在面板里添加自选股，或直接搜索代码')
-        }
-      }
-      const retry = h('button', {
-        text: '重新加载',
-        onclick: () => loadStockView(state.stockView || 'all'),
-        style: {
-          marginLeft: '10px', height: '26px', padding: '0 12px', borderRadius: '6px',
-          border: '1px solid ' + H.line, background: 'transparent', color: H.accent,
-          fontSize: '12px', cursor: 'pointer',
-        },
-      })
-      stockList.append(h('div', {
-        style: { display: 'flex', alignItems: 'center', color: H.body, fontSize: '13px', padding: '16px 4px' },
-      }, hint, state.mine.ready ? retry : null))
-      return
-    }
-    if (state.stockView === 'search' && ctx.ui?.openStockPreview) {
-      const symbol = state.stockItems[0]?.symbol
-      if (symbol) {
-        stockList.append(h('button', {
-          text: '查看该股行情 →',
-          onclick: () => ctx.ui.openStockPreview({ symbol }),
-          style: {
-            alignSelf: 'flex-start', height: '28px', padding: '0 12px', borderRadius: '6px',
-            border: '1px solid ' + H.line, background: 'transparent', color: H.accent,
-            fontSize: '12.5px', cursor: 'pointer',
-          },
-        }))
-      }
-    }
-    for (const item of state.stockItems) stockList.append(buildCard(item))
-  }
-
   // ---------------------------------------------------------------- 我的
 
   function annotate(item) {
@@ -646,11 +509,6 @@ function mount(el, ctx) {
       if (sector.length >= 2 && text.includes(sector)) hitSectors.push(sector)
     }
     item.sectorNames = hitSectors.length ? hitSectors : null
-  }
-
-  function annotateAll() {
-    for (const item of state.items) annotate(item)
-    for (const item of state.stockItems) annotate(item)
   }
 
   async function loadMine() {
@@ -709,18 +567,11 @@ function mount(el, ctx) {
 
     state.mine = { ready: true, list: [...map.values()], sectors: [...sectors] }
     paintMineToggle()
-    paintStockChips()
-    annotateAll()
+    for (const item of state.items) annotate(item)
     paintFeed()
-    // 读完自选/持仓就主动把个股页的数据拉好，避免切过去还要等
-    if (state.mine.list.length && !state.stockItems.length && !state.stockLoading) {
-      loadStockView(state.stockView || 'all')
-    } else {
-      paintStock()
-    }
   }
 
-  // ---------------------------------------------------------------- 快讯加载
+  // ---------------------------------------------------------------- 加载
 
   function absorb(items) {
     let added = 0
@@ -772,7 +623,6 @@ function mount(el, ctx) {
     }
   }
 
-  /** 自动刷新：只把新出现的条目并进来，不清空已翻过的历史。 */
   async function refreshTop() {
     try {
       const data = await fetchFeedPage(1)
@@ -784,9 +634,7 @@ function mount(el, ctx) {
       paintTopicRow()
       if (added) paintFeed()
       status(`共 ${state.items.length} 条 · ${new Date().toLocaleTimeString('zh-CN', { hour12: false })}`)
-    } catch {
-      /* 自动刷新失败静默，等下一次 */
-    }
+    } catch { /* 自动刷新失败静默 */ }
   }
 
   async function loadMore() {
@@ -815,84 +663,6 @@ function mount(el, ctx) {
     }
   }
 
-  // ---------------------------------------------------------------- 个股加载
-
-  function symbolsForView(view) {
-    const list = state.mine.list
-    if (view === 'hold') return list.filter((e) => e.kinds.has('hold')).map((e) => e.symbol)
-    if (view === 'watch') return list.filter((e) => e.kinds.has('watch')).map((e) => e.symbol)
-    return list.map((e) => e.symbol)
-  }
-
-  async function loadStockView(view) {
-    state.stockView = view
-    paintStockChips()
-    const symbols = symbolsForView(view)
-    if (!symbols.length) {
-      state.stockItems = []
-      state.stockNote.textContent = !state.mine.ready
-        ? ''
-        : (view === 'hold' ? '模拟盘当前没有持仓' : view === 'watch' ? '还没有自选股' : '')
-      paintStock()
-      return
-    }
-    state.stockLoading = true
-    state.stockError = ''
-    state.stockNote.textContent = ''
-    paintStock()
-    try {
-      const data = await getJSON(
-        `${BASE}/stock-batch?symbols=${encodeURIComponent(symbols.join(','))}&per=8`)
-      if (!alive) return
-      state.stockItems = data.items || []
-      const noteParts = [`聚合 ${data.symbols?.length || 0} 只股票，去重后 ${state.stockItems.length} 条`]
-      if (data.truncated) noteParts.push('（股票过多，仅取前 30 只）')
-      state.stockNote.textContent = noteParts.join(' ')
-      annotateAll()
-    } catch (err) {
-      if (!alive) return
-      state.stockError = '加载失败：' + (err && err.message ? err.message : String(err))
-      state.stockItems = []
-    } finally {
-      state.stockLoading = false
-      if (alive) paintStock()
-    }
-  }
-
-  async function runStockSearch() {
-    const raw = (state.searchText || stockSearch.value || '').trim()
-    if (!raw) { stockSearch.focus(); return }
-    state.stockView = 'search'
-    state.stockLoading = true
-    state.stockError = ''
-    state.stockNote.textContent = ''
-    paintStockChips()
-    paintStock()
-    try {
-      let symbol = raw
-      let label = ''
-      if (!/^\d{6}(\.(SH|SZ|BJ))?$/i.test(raw)) {
-        const found = await getJSON('/api/kline/instruments/search?q=' + encodeURIComponent(raw) + '&limit=1')
-        const hit = (found.results || [])[0]
-        if (!hit) throw new Error(`没有找到「${raw}」对应的股票`)
-        symbol = hit.symbol
-        label = hit.name || ''
-      }
-      const data = await getJSON(`${BASE}/stock?symbol=${encodeURIComponent(symbol)}&limit=20`)
-      if (!alive) return
-      state.stockItems = data.items || []
-      state.stockNote.textContent = `${label || data.symbol} · ${state.stockItems.length} 条`
-      annotateAll()
-    } catch (err) {
-      if (!alive) return
-      state.stockError = '加载失败：' + (err && err.message ? err.message : String(err))
-      state.stockItems = []
-    } finally {
-      state.stockLoading = false
-      if (alive) paintStock()
-    }
-  }
-
   // ---------------------------------------------------------------- 时钟
 
   function refreshTimes() {
@@ -910,7 +680,6 @@ function mount(el, ctx) {
     if (!state.auto) return
     timer = setInterval(() => {
       if (document.visibilityState !== 'visible') return
-      if (state.tab !== 'feed') return
       refreshTop()
     }, REFRESH_MS)
   }
@@ -918,13 +687,9 @@ function mount(el, ctx) {
   clock = setInterval(refreshTimes, 30000)
 
   // ---------------------------------------------------------------- 启动
-  paintTabs()
-  paintPanels()
   paintSentimentRow()
   paintMineToggle()
-  paintStockChips()
   paintFeed()
-  paintStock()
   loadFeed()
   loadMine()
   schedule()
@@ -943,7 +708,7 @@ const extension = {
   id: EXT_ID,
   apiVersion: 1,
   routes: [{ id: 'news', path: PAGE_PATH, mount }],
-  navigation: [{ id: 'news', routeId: 'news', label: '财经资讯', icon: 'BookOpen' }],
+  navigation: [{ id: 'news', routeId: 'news', label: '财经快讯', icon: 'BookOpen' }],
 }
 
 export default extension

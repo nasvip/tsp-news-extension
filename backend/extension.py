@@ -54,31 +54,6 @@ def setup(registrar):
         """主题词表（供前端筛选项使用）。"""
         return {"topics": list(tagger_dict.TOPICS.keys())}
 
-    @router.get("/stock-batch")
-    def get_stock_news_batch(
-        symbols: str = Query(..., description="逗号分隔，如 600519.SH,000001.SZ"),
-        per: int = Query(10, ge=1, le=30, description="每只股票取多少条"),
-    ):
-        """多只股票的新闻合并（自选/持仓聚合用）。"""
-        codes = [part.strip() for part in symbols.split(",") if part.strip()]
-        try:
-            return news_core.stock_news_batch(codes, per)
-        except news_core.UpstreamError as exc:
-            raise HTTPException(status_code=502, detail=f"上游不可用: {exc}") from exc
-
-    @router.get("/stock")
-    def get_stock_news(
-        symbol: str = Query(..., description="600519 / 600519.SH / sh600519"),
-        limit: int = Query(20, ge=1, le=50),
-    ):
-        """个股新闻。"""
-        try:
-            return news_core.stock_news(symbol, limit)
-        except ValueError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
-        except news_core.UpstreamError as exc:
-            raise HTTPException(status_code=502, detail=f"上游不可用: {exc}") from exc
-
     registrar.include_router(router)
 
 

@@ -3,7 +3,6 @@
 import json
 import re
 import time
-import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -313,97 +312,3 @@ def _fetch_all(limit_per_source: int, page: int = 1) -> list[dict]:
     if not rows:
         raise UpstreamError("三个快讯源都不可用")
     return rows
-
-
-# ---------------------------------------------------------------- 个股新闻
-
-
-def fetch_stock_news(symbol: str, limit: int) -> list[dict]:
-    """东方财富个股新闻（JSONP 接口）。"""
-    code = normalize_symbol(symbol)
-    if not code:
-        raise ValueError(f"无法识别股票代码: {symbol}")
-    param = json.dumps({
-        "uid": "", "keyword": code.split(".")[0],
-        "type": ["cmsArticleWebOld"],
-        "client": "web", "clientType": "web", "clientVersion": "curr",
-        "param": {"cmsArticleWebOld": {
-            "searchScope": "default", "sort": "default",
-            "pageIndex": 1, "pageSize": max(1, min(int(limit), 50)),
-            "preTag": "", "postTag": "",
-        }},
-    }, ensure_ascii=False)
-    url = (
-        "https://search-api-web.eastmoney.com/search/jsonp?cb=cb&param="
-        + urllib.parse.quote(param, safe="")
-    )
-    raw = _get(url, "https://so.eastmoney.com/")
-    body = raw.strip()
-    if body.startswith("cb("):
-        body = body[3:]
-    body = body.rstrip(";").rstrip(")")
-    try:
-        payload = json.loads(body)
-    except json.JSONDecodeError as exc:
-        raise UpstreamError("个股新闻解析失败") from exc
-
-    items = ((payload.get("result") or {}).get("cmsArticleWebOld")) or []
-    out = []
-    for item in items:
-        row = _item(
-            str(item.get("date") or ""),
-            item.get("title"),
-            item.get("content"),
-            item.get("url") or "",
-            item.get("mediaName") or "东方财富",
-            "em",
-        )
-        if row:
-            out.append(row)
-    return out
-
-
-def stock_news(symbol: str, limit: int) -> dict:
-    code = normalize_symbol(symbol)
-    if not code:
-        raise ValueError(f"无法识别股票代码: {symbol}")
-    limit = max(1, min(int(limit), 50))
-    items = _cached(("stock", code, limit), lambda: fetch_stock_news(code, limit))
-    return {"symbol": code, "count": len(items), "items": items}
-
-
-# 一次聚合请求最多处理多少只标的：自选很多时避免一进页面就打几十个请求
-MAX_BATCH_SYMBOLS = 30
-
-
-def stock_news_batch(symbols: list[str], per: int = 10) -> dict:
-    """多只股票的新闻合并：并发查询 → 按标题指纹去重 → 按时间倒序。"""
-    per = max(1, min(int(per), 30))
-    codes: list[str] = []
-    for raw in symbols or []:
-        code = normalize_symbol(raw)
-        if code and code not in codes:
-            codes.append(code)
-    truncated = len(codes) > MAX_BATCH_SYMBOLS
-    codes = codes[:MAX_BATCH_SYMBOLS]
-    if not codes:
-        return {"count": 0, "symbols": [], "truncated": False, "items": []}
-
-    def one(code: str) -> list[dict]:
-        try:
-            return fetch_stock_news(code, per)
-        except (UpstreamError, ValueError):
-            return []
-
-    rows: list[dict] = []
-    with ThreadPoolExecutor(max_workers=8) as pool:
-        for chunk in pool.map(one, codes):
-            rows.extend(chunk)
-
-    merged = _merge(rows)
-    return {
-        "count": len(merged),
-        "symbols": codes,
-        "truncated": truncated,
-        "items": merged,
-    }

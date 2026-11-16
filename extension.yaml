@@ -1,0 +1,16 @@
+format: tick-extension-package
+format_version: 1
+id: nasvip.news
+display_name: 财经资讯
+version: 0.2.1
+extension_api_version: 1
+author: nasvip
+description: 7x24 财经快讯（同花顺 / 新浪 / 东财三源可切）与个股新闻，带关键词过滤与个股详情跳转。
+backend: backend.extension
+frontend: frontend/extension.mjs
+requires_app: '>=0.3.25'
+requires_python: '>=3.11'
+platforms: [any]
+requires: []
+
+

@@ -60,9 +60,26 @@
 ## 开发
 
 ```powershell
-python scripts/run_tests.py    # 10 项离线单测（构造响应验证解析）
-python scripts/smoke.py        # 真实接口冒烟：三源 + 个股
-pwsh ./build.ps1               # 产出 dist/news.zip
+python scripts/validate_manifest.py   # 清单与包结构校验（不联网）
+python scripts/run_tests.py           # 20 项离线单测
+python scripts/smoke.py               # 真实接口冒烟：三源合并 + 个股
+pwsh ./build.ps1                      # 产出 dist/news.zip
 ```
 
 依赖：面板宿主的 `fastapi` 与 Python 标准库，无第三方包。
+
+## 发布
+
+插件包由 GitHub Actions 自动构建，**不用手动打包**。
+
+- 推 `main` → 清单校验 + 单测 + 打包，产物存 Actions artifact
+- 打 tag `vX.Y.Z` → 额外做版本一致性检查、从 `CHANGELOG.md` 抽取正文，
+  自动创建 Release 并挂上 `news.zip`
+
+发版三步：
+
+1. 改 `extension.yaml` 的 `version`
+2. 在 `CHANGELOG.md` 加一段 `## [x.y.z] - 日期`
+3. `git tag vX.Y.Z && git push origin vX.Y.Z`
+
+tag 和版本号不一致、或 CHANGELOG 缺段落时，流程直接失败，不会发出没有说明的版本。

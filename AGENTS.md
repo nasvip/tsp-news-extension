@@ -42,12 +42,18 @@ build.ps1                 打包 dist/news.zip
 ## 构建与测试
 
 ```powershell
-python scripts/run_tests.py    # 10 项离线单测
-python scripts/smoke.py        # 真实接口冒烟
-pwsh ./build.ps1               # 产出 dist/news.zip
+python scripts/validate_manifest.py   # 清单与结构校验（复刻面板规则）
+python scripts/run_tests.py           # 20 项离线单测
+python scripts/smoke.py               # 真实接口冒烟
+pwsh ./build.ps1                      # 产出 dist/news.zip
 ```
 
-打包前清掉 `__pycache__`，否则会被打进 ZIP。
+打包脚本会自动清理 `__pycache__`。
+
+## 发布
+
+推 `main` 跑 CI；打 tag `vX.Y.Z` 自动发 Release，正文取自 `CHANGELOG.md` 对应段落。
+版本号、CHANGELOG、tag 三者必须一致，否则流程失败。
 
 ## 注意事项
 
